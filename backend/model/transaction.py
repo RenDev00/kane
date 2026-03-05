@@ -49,6 +49,13 @@ class Transaction(BaseModel):
         default=None,
     )
 
+    @field_validator("amount", mode="before")
+    @classmethod
+    def validate_amount(cls, v: float) -> float:
+        if v < 0:
+            raise ValueError("Transaction amount must be positive.")
+        return v
+
     @field_validator("date", mode="after")
     @classmethod
     def validate_date(cls, v: datetime) -> AwareDatetime:
