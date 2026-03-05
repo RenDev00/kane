@@ -56,13 +56,6 @@ class Transaction(BaseModel):
             raise ValueError("Transaction amount must be positive.")
         return v
 
-    @field_validator("date", mode="after")
-    @classmethod
-    def validate_date(cls, v: datetime) -> AwareDatetime:
-        if v.tzinfo is None:
-            return v.replace(tzinfo=timezone.utc)
-        return v
-
     @field_validator("type", mode="before")
     @classmethod
     def validate_type(cls, v: str | TransactionType) -> TransactionType:
