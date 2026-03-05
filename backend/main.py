@@ -1,11 +1,13 @@
-from datetime import datetime
 from typing import List, Optional
 
 from fastapi import FastAPI, HTTPException
+from pydantic import AwareDatetime
 
 from model.transaction import (
     Transaction,
     TransactionCategory,
+    TransactionExpenseCategory,
+    TransactionIncomeCategory,
     TransactionType,
 )
 
@@ -16,26 +18,26 @@ data = {
     0: Transaction(
         id=0,
         amount=19.99,
-        date="2026-03-02T20:50:32",
-        type="income",
-        category="salary",
+        date="2026-03-02T20:50:32Z",
+        type=TransactionType.INCOME,
+        category=TransactionIncomeCategory.SALARY,
         comment="Test Transaction",
     ),
     1: Transaction(
         id=1,
         amount=9.99,
-        date="2026-02-02T20:50:32",
-        type="expense",
-        category="want",
+        date="2026-02-02T20:50:32Z",
+        type=TransactionType.EXPENSE,
+        category=TransactionExpenseCategory.NEED,
     ),
 }
 
 
 @app.get("/transactions/")
-async def get_transactions(
+def get_transactions(
     amount: Optional[float] = None,
-    before: Optional[datetime] = None,
-    after: Optional[datetime] = None,
+    before: Optional[AwareDatetime] = None,
+    after: Optional[AwareDatetime] = None,
     type: Optional[TransactionType] = None,
     category: Optional[TransactionCategory] = None,
     comment: Optional[str] = None,
@@ -48,7 +50,9 @@ async def get_transactions(
                 after is None or t.date >= after,
                 type is None or t.type == type,
                 category is None or t.category == category,
-                comment is None or t.comment == comment,
+                comment is None
+                or t.comment is not None
+                and comment.lower() in t.comment.lower(),
             ]
         )
 
@@ -56,7 +60,7 @@ async def get_transactions(
 
 
 @app.get("/transactions/{id}")
-async def get_transaction_by_id(id: int) -> Transaction:
+def get_transaction_by_id(id: int) -> Transaction:
     if id not in data.keys():
         raise HTTPException(
             status_code=404,
