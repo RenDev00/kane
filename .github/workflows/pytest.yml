@@ -20,9 +20,7 @@ jobs:
         with:
           filters: |
             python-code:
-              - '**.py'
-              - '!backend/tests/**'
-              - '!backend/tests'
+              - 'backend/**.py'
 
   test:
     needs: check-changes
