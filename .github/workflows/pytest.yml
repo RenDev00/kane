@@ -45,4 +45,4 @@ jobs:
 
       - name: Run tests
         working-directory: backend
-        run: uv run pytest --durations=10 -vv --cov=.
+        run: uv run pytest
