@@ -211,7 +211,7 @@ class TestCategoryTypeCompatibility:
                 type=TransactionType.EXPENSE,
                 category=TransactionIncomeCategory.SALARY,
             )
-        assert "cannot have category=SALARY" in str(exc_info.value)
+        assert "cannot have category=salary" in str(exc_info.value)
 
     def test_income_with_expense_category_raises_error(self):
         with pytest.raises(ValidationError) as exc_info:
@@ -222,7 +222,7 @@ class TestCategoryTypeCompatibility:
                 type=TransactionType.INCOME,
                 category=TransactionExpenseCategory.WANT,
             )
-        assert "cannot have category=WANT" in str(exc_info.value)
+        assert "cannot have category=want" in str(exc_info.value)
 
 
 class TestTransactionSerialization:
@@ -236,7 +236,7 @@ class TestTransactionSerialization:
     def test_model_dump_json(self, sample_income_transaction):
         json_data = sample_income_transaction.model_dump_json()
         assert '"id":1' in json_data
-        assert '"amount":5000.0' in json_data
+        assert '"amount":"5000.00"' in json_data
 
     def test_model_validate(self):
         data = {

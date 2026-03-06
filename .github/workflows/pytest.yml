@@ -20,7 +20,7 @@ jobs:
         with:
           filters: |
             python-code:
-              - 'backend/**.py'
+              - 'backend/**/*.py'
 
   test:
     needs: check-changes
@@ -45,4 +45,4 @@ jobs:
 
       - name: Run tests
         working-directory: backend
-        run: uv run pytest --durations=10 -vv
+        run: uv run pytest
