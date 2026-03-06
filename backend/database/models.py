@@ -1,6 +1,6 @@
-from datetime import datetime
+from datetime import datetime, timezone
 
-from sqlalchemy import Enum as SQLEnum
+from sqlalchemy import DateTime, Dialect, Enum as SQLEnum, TypeDecorator
 from sqlalchemy.orm import Mapped, mapped_column
 from sqlmodel import func
 
@@ -10,6 +10,20 @@ from model.transaction import (
     TransactionIncomeCategory,
     TransactionType,
 )
+
+
+class UTCDateTime(TypeDecorator):
+    """Convert aware -> naive UTC when saving, naive UTC -> aware when loading"""
+
+    impl = DateTime
+    cache_ok = True
+
+    def process_bind_param(self, value: datetime, dialect: Dialect) -> datetime:
+        value = value.astimezone(timezone.utc).replace(tzinfo=None)
+        return value
+
+    def process_result_value(self, value: datetime, dialect: Dialect) -> datetime:
+        return value.replace(tzinfo=timezone.utc)
 
 
 class TransactionDB(Base):
@@ -23,6 +37,7 @@ class TransactionDB(Base):
     )
     amount: Mapped[float] = mapped_column(nullable=False)
     date: Mapped[datetime] = mapped_column(
+        UTCDateTime,
         nullable=False,
         server_default=func.current_timestamp(),
         index=True,

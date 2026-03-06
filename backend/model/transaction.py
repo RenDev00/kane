@@ -1,4 +1,3 @@
-from datetime import datetime, timezone
 from enum import StrEnum, auto
 from typing import Optional, Self, Union
 
@@ -38,7 +37,7 @@ class Transaction(BaseModel):
 
     id: int | None = Field(
         default=None,
-        examples=[0, 1, 2],
+        examples=[1, 2, 3],
         description="A unique transaction identifier (auto-generated on create).",
         frozen=True,
     )
@@ -99,7 +98,7 @@ class Transaction(BaseModel):
         op = {
             str: lambda x: (
                 TransactionIncomeCategory[x.upper()]
-                if x in TransactionIncomeCategory
+                if x.lower() in TransactionIncomeCategory
                 else TransactionExpenseCategory[x.upper()]
             ),
         }
@@ -119,7 +118,7 @@ class Transaction(BaseModel):
             and type(self.category) is TransactionExpenseCategory
         ):
             raise ValueError(
-                f"Transactions with type={self.type.name} cannot have category={self.category.name}."
+                f"Transactions with type={self.type.value} cannot have category={self.category.value}."
             )
 
         return self
