@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Dict, List, Optional
 
 from fastapi import FastAPI, HTTPException
 from pydantic import AwareDatetime
@@ -31,6 +31,15 @@ data = {
         category=TransactionExpenseCategory.NEED,
     ),
 }
+
+
+@app.put("/transactions/")
+def add_transaction(transaction: Transaction) -> Dict[str, str | Transaction]:
+    data[len(data)] = transaction
+    return {
+        "message": "Transaction added",
+        "transaction": transaction,
+    }
 
 
 @app.get("/transactions/")
