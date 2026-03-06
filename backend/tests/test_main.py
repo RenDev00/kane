@@ -1,5 +1,7 @@
 from decimal import Decimal
 
+import pytest
+
 
 class TestCreateTransaction:
     def test_create_income_transaction(self, client):
@@ -46,25 +48,55 @@ class TestCreateTransaction:
         data = response.json()
         assert data["comment"] is None
 
-    def test_create_transaction_invalid_type(self, client):
+    @pytest.mark.parametrize(
+        "invalid_type",
+        ["invalid", "INVALID", "in", "expensee", ""],
+    )
+    def test_create_transaction_invalid_type(self, client, invalid_type):
         payload = {
             "amount": 100.00,
             "date": "2026-01-01T12:00:00Z",
-            "type": "invalid",
+            "type": invalid_type,
             "category": "need",
         }
         response = client.post("/transactions/", json=payload)
         assert response.status_code == 422
 
-    def test_create_transaction_invalid_category(self, client):
+    @pytest.mark.parametrize(
+        "invalid_category",
+        ["invalid", "INVALID", "neeed", "salaryy", ""],
+    )
+    def test_create_transaction_invalid_category(self, client, invalid_category):
         payload = {
             "amount": 100.00,
             "date": "2026-01-01T12:00:00Z",
             "type": "expense",
-            "category": "invalid",
+            "category": invalid_category,
         }
         response = client.post("/transactions/", json=payload)
         assert response.status_code == 422
+
+    @pytest.mark.parametrize(
+        "amount,expected_status",
+        [
+            (0, 201),
+            (0.01, 201),
+            (999999999.99, 201),
+            (-1, 422),
+            (-100.50, 422),
+        ],
+    )
+    def test_create_transaction_amount_edge_cases(
+        self, client, amount, expected_status
+    ):
+        payload = {
+            "amount": amount,
+            "date": "2026-01-01T12:00:00Z",
+            "type": "expense",
+            "category": "need",
+        }
+        response = client.post("/transactions/", json=payload)
+        assert response.status_code == expected_status
 
 
 class TestGetTransactions:
@@ -129,6 +161,26 @@ class TestGetTransactions:
         assert response.status_code == 200
         data = response.json()
         assert len(data) == 2
+
+    @pytest.mark.parametrize(
+        "url,expected_count",
+        [
+            ("/transactions/?before=2026-02-02T20:50:32Z", 1),
+            ("/transactions/?after=2026-03-02T20:50:32Z", 1),
+            ("/transactions/?before=2026-01-01T00:00:00Z", 0),
+            ("/transactions/?after=2026-12-31T23:59:59Z", 0),
+        ],
+    )
+    def test_get_transactions_date_boundary_cases(
+        self, client_with_data, url, expected_count
+    ):
+        response = client_with_data.get(url)
+        if expected_count == 0:
+            assert response.status_code == 404
+        else:
+            assert response.status_code == 200
+            data = response.json()
+            assert len(data) == expected_count
 
     def test_get_transactions_no_matches(self, client_with_data):
         response = client_with_data.get("/transactions/?amount=999999")
