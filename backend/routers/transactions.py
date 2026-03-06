@@ -2,7 +2,7 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import AwareDatetime
-from sqlalchemy import select
+from sqlalchemy import select, delete, update
 from sqlalchemy.orm import Session
 
 from database.database import get_db
@@ -10,6 +10,7 @@ from database.models import TransactionDB
 from model.transaction import (
     Transaction,
     TransactionCreate,
+    TransactionEdit,
     TransactionExpenseCategory,
     TransactionIncomeCategory,
     TransactionType,
@@ -122,11 +123,57 @@ def get_transaction_by_id(
     id: int,
     db: Session = Depends(get_db),
 ) -> Transaction:
-    stmt = select(TransactionDB).where(TransactionDB.id == id)
-    obj = db.scalars(stmt).first()
+    obj = db.get(TransactionDB, id)
     if obj is None:
         raise HTTPException(
             status_code=404,
             detail=f"Transaction with {id=} does not exist.",
         )
     return Transaction.model_validate(obj)
+
+
+@router.patch(
+    "/{id}",
+    response_model=Transaction,
+)
+def edit_transaction_by_id(
+    id: int,
+    transaction: TransactionEdit,
+    db: Session = Depends(get_db),
+) -> Transaction:
+    dump = transaction.model_dump(exclude_unset=True)
+    dump.pop("category", None)
+    if transaction.type == TransactionType.INCOME:
+        dump["income_category"] = transaction.category
+        dump["expense_category"] = None
+    else:
+        dump["expense_category"] = transaction.category
+        dump["income_category"] = None
+
+    stmt = (
+        update(TransactionDB)
+        .where(TransactionDB.id == id)
+        .values(**dump)
+        .returning(TransactionDB)
+    )
+    obj = db.execute(stmt).first()
+    db.commit()
+    if obj is None:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Transaction with {id=} does not exist.",
+        )
+    return Transaction.model_validate(obj[0])
+
+
+@router.delete(
+    "/{id}",
+    status_code=204,
+)
+def delete_transaction_by_id(
+    id: int,
+    db: Session = Depends(get_db),
+) -> None:
+    stmt = delete(TransactionDB).where(TransactionDB.id == id)
+    db.execute(stmt)
+    db.commit()
