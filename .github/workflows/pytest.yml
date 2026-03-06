@@ -5,7 +5,29 @@ on:
   pull_request:
 
 jobs:
+  check-changes:
+    runs-on: ubuntu-latest
+
+    outputs:
+      python-code-changed: ${{ steps.filter.outputs.python-code }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Filter changed files
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            python-code:
+              - '**.py'
+              - '!backend/tests/**'
+              - '!backend/tests'
+
   test:
+    needs: check-changes
+    if: ${{ needs.check-changes.outputs.python-code-changed == 'true' }}
+
     runs-on: ubuntu-latest
 
     steps:
