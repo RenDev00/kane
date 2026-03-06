@@ -9,6 +9,7 @@ from database.database import get_db
 from database.models import TransactionDB
 from model.transaction import (
     Transaction,
+    TransactionCreate,
     TransactionExpenseCategory,
     TransactionIncomeCategory,
     TransactionType,
@@ -23,7 +24,7 @@ router = APIRouter(prefix="/transactions", tags=["transactions"])
     status_code=201,
 )
 def add_transaction(
-    transaction: Transaction,
+    transaction: TransactionCreate,
     db: Session = Depends(get_db),
 ) -> Transaction:
     db_obj = TransactionDB(
