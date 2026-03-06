@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+from decimal import Decimal
 
 from sqlalchemy import DateTime, Dialect, Enum as SQLEnum, TypeDecorator
 from sqlalchemy.orm import Mapped, mapped_column
@@ -35,7 +36,7 @@ class TransactionDB(Base):
         index=True,
         nullable=False,
     )
-    amount: Mapped[float] = mapped_column(nullable=False)
+    amount: Mapped[Decimal] = mapped_column(nullable=False)
     date: Mapped[datetime] = mapped_column(
         UTCDateTime,
         nullable=False,

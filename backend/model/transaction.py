@@ -1,3 +1,4 @@
+from decimal import Decimal
 from enum import StrEnum, auto
 from typing import Optional, Self, Union
 
@@ -41,7 +42,7 @@ class Transaction(BaseModel):
         description="A unique transaction identifier (auto-generated on create).",
         frozen=True,
     )
-    amount: float = Field(
+    amount: Decimal = Field(
         examples=[19.99],
         description="The value of the transaction.",
     )
