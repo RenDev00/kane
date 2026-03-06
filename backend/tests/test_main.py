@@ -240,3 +240,141 @@ class TestTransactionSerialization:
         data = response.json()
         assert data["type"] == "expense"
         assert data["category"] == "need"
+
+
+class TestEditTransaction:
+    def test_patch_update_amount(self, client_with_data):
+        response = client_with_data.patch(
+            "/transactions/1",
+            json={"amount": 7500.00, "type": "income", "category": "salary"},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert Decimal(str(data["amount"])) == Decimal("7500.00")
+
+    def test_patch_update_comment(self, client_with_data):
+        response = client_with_data.patch(
+            "/transactions/1",
+            json={"comment": "Updated comment", "type": "income", "category": "salary"},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["comment"] == "Updated comment"
+
+    def test_patch_update_category_same_type(self, client_with_data):
+        response = client_with_data.patch(
+            "/transactions/1",
+            json={"type": "income", "category": "other"},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["category"] == "other"
+
+    def test_patch_update_type_and_category(self, client_with_data):
+        response = client_with_data.patch(
+            "/transactions/2",
+            json={"type": "income", "category": "salary"},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["type"] == "income"
+        assert data["category"] == "salary"
+
+    def test_patch_update_multiple_fields(self, client_with_data):
+        response = client_with_data.patch(
+            "/transactions/1",
+            json={
+                "amount": 100.00,
+                "comment": "New comment",
+                "type": "income",
+                "category": "other",
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert Decimal(str(data["amount"])) == Decimal("100.00")
+        assert data["comment"] == "New comment"
+        assert data["category"] == "other"
+
+    def test_patch_update_date(self, client_with_data):
+        response = client_with_data.patch(
+            "/transactions/1",
+            json={"date": "2026-06-15T10:00:00Z", "type": "income", "category": "salary"},
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert "2026-06-15" in data["date"]
+
+    def test_patch_not_found(self, client_with_data):
+        response = client_with_data.patch(
+            "/transactions/999",
+            json={"amount": 100.00, "type": "income", "category": "salary"},
+        )
+        assert response.status_code == 404
+        assert "does not exist" in response.json()["detail"]
+
+    def test_patch_invalid_type(self, client_with_data):
+        response = client_with_data.patch(
+            "/transactions/1",
+            json={"type": "invalid", "category": "salary"},
+        )
+        assert response.status_code == 422
+
+    def test_patch_invalid_category(self, client_with_data):
+        response = client_with_data.patch(
+            "/transactions/1",
+            json={"type": "income", "category": "invalid"},
+        )
+        assert response.status_code == 422
+
+    def test_patch_invalid_type_category_combo(self, client_with_data):
+        response = client_with_data.patch(
+            "/transactions/1",
+            json={"type": "expense", "category": "salary"},
+        )
+        assert response.status_code == 422
+
+    def test_patch_negative_amount(self, client_with_data):
+        response = client_with_data.patch(
+            "/transactions/1",
+            json={"amount": -100.00, "type": "income", "category": "salary"},
+        )
+        assert response.status_code == 422
+
+    def test_patch_missing_type(self, client_with_data):
+        response = client_with_data.patch("/transactions/1", json={"category": "salary"})
+        assert response.status_code == 422
+
+    def test_patch_missing_category(self, client_with_data):
+        response = client_with_data.patch("/transactions/1", json={"type": "income"})
+        assert response.status_code == 422
+
+
+class TestDeleteTransaction:
+    def test_delete_existing_transaction(self, client_with_data):
+        response = client_with_data.delete("/transactions/1")
+        assert response.status_code == 204
+        assert response.text == ""
+
+    def test_delete_then_get_returns_404(self, client_with_data):
+        client_with_data.delete("/transactions/1")
+        response = client_with_data.get("/transactions/1")
+        assert response.status_code == 404
+
+    def test_delete_nonexistent_transaction(self, client_with_data):
+        response = client_with_data.delete("/transactions/999")
+        assert response.status_code == 404
+
+    def test_delete_updates_list(self, client_with_data):
+        client_with_data.delete("/transactions/1")
+        response = client_with_data.get("/transactions/")
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 1
+        assert data[0]["id"] == 2
+
+    def test_delete_all_transactions(self, client_with_data):
+        client_with_data.delete("/transactions/1")
+        client_with_data.delete("/transactions/2")
+        response = client_with_data.get("/transactions/")
+        assert response.status_code == 404

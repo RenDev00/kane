@@ -141,12 +141,13 @@ def edit_transaction_by_id(
     transaction: TransactionEdit,
     db: Session = Depends(get_db),
 ) -> Transaction:
-    dump = transaction.model_dump(exclude_unset=True)
+    dump = transaction.model_dump(exclude_none=True)
     dump.pop("category", None)
+
     if transaction.type == TransactionType.INCOME:
         dump["income_category"] = transaction.category
         dump["expense_category"] = None
-    else:
+    elif transaction.type == TransactionType.EXPENSE:
         dump["expense_category"] = transaction.category
         dump["income_category"] = None
 
@@ -174,6 +175,10 @@ def delete_transaction_by_id(
     id: int,
     db: Session = Depends(get_db),
 ) -> None:
-    stmt = delete(TransactionDB).where(TransactionDB.id == id)
-    db.execute(stmt)
+    deleted = db.query(TransactionDB).filter(TransactionDB.id == id).delete()
     db.commit()
+    if not deleted:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Transaction with {id=} does not exist.",
+        )

@@ -158,14 +158,12 @@ class TransactionEdit(BaseModel):
         examples=["2026-03-02T20:50:32Z", None],
         description="The date of the transaction.",
     )
-    type: Optional[TransactionType] = Field(
-        default=None,
-        examples=["EXPENSE", "INCOME", None],
+    type: TransactionType = Field(
+        examples=["EXPENSE", "INCOME"],
         description="The type of the transaction.",
     )
-    category: Optional[TransactionCategory] = Field(
-        default=None,
-        examples=["NEED", "WANT", "SAVING", "SALARY", "OTHER", None],
+    category: TransactionCategory = Field(
+        examples=["NEED", "WANT", "SAVING", "SALARY", "OTHER"],
         description="Income: SALARY or OTHER. Expense: NEED, WANT or SAVING",
     )
     comment: Optional[str] = Field(
