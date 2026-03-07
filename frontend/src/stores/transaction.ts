@@ -100,8 +100,6 @@ export const useTransactionStore = defineStore('transaction', () => {
 
   return {
     // Transaction Table State
-    tableTransactions,
-    recentTransactions,
     loading,
     error,
     // Getters
