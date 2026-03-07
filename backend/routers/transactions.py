@@ -2,7 +2,7 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import AwareDatetime
-from sqlalchemy import desc, select, delete, update
+from sqlalchemy import desc, select, update
 from sqlalchemy.orm import Session
 
 from database.database import get_db
