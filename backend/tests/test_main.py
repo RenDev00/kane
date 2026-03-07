@@ -175,21 +175,19 @@ class TestGetTransactions:
         self, client_with_data, url, expected_count
     ):
         response = client_with_data.get(url)
-        if expected_count == 0:
-            assert response.status_code == 404
-        else:
-            assert response.status_code == 200
-            data = response.json()
-            assert len(data) == expected_count
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == expected_count
 
     def test_get_transactions_no_matches(self, client_with_data):
         response = client_with_data.get("/transactions/?amount=999999")
-        assert response.status_code == 404
-        assert "No matching transactions found" in response.json()["detail"]
+        assert response.status_code == 200
+        assert response.json() == []
 
     def test_get_transactions_empty_database(self, client):
         response = client.get("/transactions/")
-        assert response.status_code == 404
+        assert response.status_code == 200
+        assert response.json() == []
 
 
 class TestGetTransactionsPagination:
@@ -253,7 +251,8 @@ class TestGetTransactionsPagination:
         for i in range(3):
             self._create_transaction_via_api(client_with_data, 10.00 + i, i)
         response = client_with_data.get("/transactions/?page=5&limit=10")
-        assert response.status_code == 404
+        assert response.status_code == 200
+        assert response.json() == []
 
 
 class TestGetTransactionById:
@@ -447,4 +446,5 @@ class TestDeleteTransaction:
         client_with_data.delete("/transactions/1")
         client_with_data.delete("/transactions/2")
         response = client_with_data.get("/transactions/")
-        assert response.status_code == 404
+        assert response.status_code == 200
+        assert response.json() == []

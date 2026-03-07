@@ -2,7 +2,7 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import AwareDatetime
-from sqlalchemy import desc, select, delete, update
+from sqlalchemy import desc, select, update
 from sqlalchemy.orm import Session
 
 from database.database import get_db
@@ -93,7 +93,7 @@ def get_transactions(
 ) -> List[Transaction]:
     stmt = select(TransactionDB).order_by(desc(TransactionDB.date))
 
-    if amount:
+    if amount != None:
         stmt = stmt.where(TransactionDB.amount == amount)
     if before:
         stmt = stmt.where(TransactionDB.date <= before)
@@ -137,11 +137,6 @@ def get_transactions(
         stmt = stmt.limit(limit)
 
     objs = db.scalars(stmt).all()
-    if not objs:
-        raise HTTPException(
-            status_code=404,
-            detail=f"No matching transactions found.",
-        )
     return [Transaction.model_validate(obj) for obj in objs]
 
 
