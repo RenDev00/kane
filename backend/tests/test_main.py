@@ -192,6 +192,70 @@ class TestGetTransactions:
         assert response.status_code == 404
 
 
+class TestGetTransactionsPagination:
+    def _create_transaction_via_api(self, client, amount: float, index: int):
+        payload = {
+            "amount": amount,
+            "date": f"2026-01-{1 + index:02d}T12:00:00Z",
+            "type": "expense",
+            "category": "need",
+            "comment": f"Transaction {index + 1}",
+        }
+        response = client.post("/transactions/", json=payload)
+        assert response.status_code == 201
+
+    def test_get_transactions_limit_only(self, client_with_data):
+        for i in range(8):
+            self._create_transaction_via_api(client_with_data, 10.00 + i, i)
+        response = client_with_data.get("/transactions/?limit=3")
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 3
+
+    def test_get_transactions_page_and_limit(self, client_with_data):
+        for i in range(8):
+            self._create_transaction_via_api(client_with_data, 10.00 + i, i)
+        response = client_with_data.get("/transactions/?page=2&limit=3")
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 3
+
+    def test_get_transactions_first_page(self, client_with_data):
+        for i in range(8):
+            self._create_transaction_via_api(client_with_data, 10.00 + i, i)
+        response = client_with_data.get("/transactions/?page=1&limit=3")
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 3
+
+    def test_get_transactions_last_page(self, client_with_data):
+        for i in range(10):
+            self._create_transaction_via_api(client_with_data, 10.00 + i, i)
+        response = client_with_data.get("/transactions/?page=2&limit=5")
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 5
+
+    def test_get_transactions_page_without_limit(self, client_with_data):
+        response = client_with_data.get("/transactions/?page=2")
+        assert response.status_code == 422
+        assert "limit" in response.json()["detail"].lower()
+
+    def test_get_transactions_limit_exceeds_max(self, client_with_data):
+        response = client_with_data.get("/transactions/?limit=51")
+        assert response.status_code == 422
+
+    def test_get_transactions_page_less_than_one(self, client_with_data):
+        response = client_with_data.get("/transactions/?page=0&limit=10")
+        assert response.status_code == 422
+
+    def test_get_transactions_page_beyond_results(self, client_with_data):
+        for i in range(3):
+            self._create_transaction_via_api(client_with_data, 10.00 + i, i)
+        response = client_with_data.get("/transactions/?page=5&limit=10")
+        assert response.status_code == 404
+
+
 class TestGetTransactionById:
     def test_get_transaction_by_id_first(self, client_with_data):
         response = client_with_data.get("/transactions/1")
@@ -299,7 +363,11 @@ class TestEditTransaction:
     def test_patch_update_date(self, client_with_data):
         response = client_with_data.patch(
             "/transactions/1",
-            json={"date": "2026-06-15T10:00:00Z", "type": "income", "category": "salary"},
+            json={
+                "date": "2026-06-15T10:00:00Z",
+                "type": "income",
+                "category": "salary",
+            },
         )
         assert response.status_code == 200
         data = response.json()
@@ -342,7 +410,9 @@ class TestEditTransaction:
         assert response.status_code == 422
 
     def test_patch_missing_type(self, client_with_data):
-        response = client_with_data.patch("/transactions/1", json={"category": "salary"})
+        response = client_with_data.patch(
+            "/transactions/1", json={"category": "salary"}
+        )
         assert response.status_code == 422
 
     def test_patch_missing_category(self, client_with_data):
