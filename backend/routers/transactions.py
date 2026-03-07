@@ -2,7 +2,7 @@ from typing import List, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 from pydantic import AwareDatetime
-from sqlalchemy import select, delete, update
+from sqlalchemy import desc, select, delete, update
 from sqlalchemy.orm import Session
 
 from database.database import get_db
@@ -56,6 +56,7 @@ def get_transactions(
     amount: Optional[float] = Query(
         None,
         ge=0,
+        description="The transaction amount to filter for.",
     ),
     before: Optional[AwareDatetime] = Query(
         None,
@@ -65,20 +66,40 @@ def get_transactions(
         None,
         description="Filter transactions after this datetime (ISO 8601).",
     ),
-    type: Optional[str] = None,
-    category: Optional[str] = None,
-    comment: Optional[str] = None,
+    type: Optional[str] = Query(
+        None,
+        description="Filter transactions based on the provided type.",
+    ),
+    category: Optional[str] = Query(
+        None,
+        description="Filter transactions based on the provided category.",
+    ),
+    comment: Optional[str] = Query(
+        None,
+        description="Filter transactions containing the provided string in their comment.",
+    ),
+    page: Optional[int] = Query(
+        None,
+        ge=1,
+        description="When using this parameter, `limit` must also be provided. Used for pagination.",
+    ),
+    limit: Optional[int] = Query(
+        None,
+        ge=1,
+        le=50,
+        description="The number of transactions to fetch.",
+    ),
     db: Session = Depends(get_db),
 ) -> List[Transaction]:
-    stmt = select(TransactionDB)
+    stmt = select(TransactionDB).order_by(desc(TransactionDB.date))
 
-    if amount is not None:
+    if amount:
         stmt = stmt.where(TransactionDB.amount == amount)
-    if before is not None:
+    if before:
         stmt = stmt.where(TransactionDB.date <= before)
-    if after is not None:
+    if after:
         stmt = stmt.where(TransactionDB.date >= after)
-    if type is not None:
+    if type:
         try:
             type = TransactionType[type.upper()]
         except KeyError:
@@ -87,7 +108,7 @@ def get_transactions(
                 detail=f"Value error, invalid transaction type {type}.",
             )
         stmt = stmt.where(TransactionDB.type == type)
-    if category is not None:
+    if category:
         try:
             category = (
                 TransactionIncomeCategory[category.upper()]
@@ -105,6 +126,15 @@ def get_transactions(
             stmt = stmt.where(TransactionDB.expense_category == category)
     if comment is not None:
         stmt = stmt.where(TransactionDB.comment.ilike(f"%{comment}%"))
+    if page:
+        if not limit:
+            raise HTTPException(
+                status_code=422,
+                detail=f"Page parameter must be used in conjunction with limit parameter.",
+            )
+        stmt = stmt.offset((page - 1) * limit)
+    if limit:
+        stmt = stmt.limit(limit)
 
     objs = db.scalars(stmt).all()
     if not objs:
