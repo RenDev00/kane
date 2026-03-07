@@ -31,7 +31,7 @@ class TransactionIncomeCategory(StrEnum):
 TransactionCategory = Union[TransactionExpenseCategory, TransactionIncomeCategory]
 
 
-def _validate_amount(v: float) -> float:
+def _validate_amount(v: Decimal) -> Decimal:
     if v < 0:
         raise ValueError("Transaction amount must be positive.")
     return v
@@ -104,7 +104,7 @@ class TransactionBase(BaseModel):
 
     @field_validator("amount", mode="before")
     @classmethod
-    def validate_amount(cls, v: float) -> float:
+    def validate_amount(cls, v: Decimal) -> Decimal:
         return _validate_amount(v)
 
     @field_validator("type", mode="before")
@@ -174,7 +174,7 @@ class TransactionEdit(BaseModel):
 
     @field_validator("amount", mode="before")
     @classmethod
-    def validate_amount(cls, v: Optional[float]) -> Optional[float]:
+    def validate_amount(cls, v: Decimal) -> Decimal:
         if v is None:
             return v
         return _validate_amount(v)
