@@ -1,6 +1,6 @@
 <template>
   <v-container fluid>
-    <h1>Settings</h1>
+    <h2>Settings</h2>
   </v-container>
 </template>
 

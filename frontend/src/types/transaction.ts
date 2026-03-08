@@ -40,10 +40,3 @@ export interface TransactionFilters {
 
 export const INCOME_CATEGORIES: TransactionCategory[] = ['SALARY', 'OTHER']
 export const EXPENSE_CATEGORIES: TransactionCategory[] = ['NEED', 'WANT', 'SAVING']
-
-export function isValidCategoryForType (category: TransactionCategory, type: TransactionType): boolean {
-  if (type === 'INCOME') {
-    return INCOME_CATEGORIES.includes(category)
-  }
-  return EXPENSE_CATEGORIES.includes(category)
-}

@@ -15,9 +15,11 @@
     "mcp:revert": "ruler revert"
   },
   "dependencies": {
+    "@date-fns/tz": "^1.4.1",
     "@fontsource/roboto": "^5.2.9",
     "@mdi/font": "7.4.47",
     "axios": "^1.13.6",
+    "date-fns": "^4.1.0",
     "pinia": "^3.0.4",
     "vue": "^3.5.26",
     "vue-router": "^4.6.4",

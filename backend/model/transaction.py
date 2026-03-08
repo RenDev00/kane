@@ -82,6 +82,7 @@ def _validate_type_category_combo(
 class TransactionBase(BaseModel):
     amount: Decimal = Field(
         examples=[19.99],
+        ge=0,
         description="The value of the transaction.",
     )
     date: AwareDatetime = Field(
@@ -101,11 +102,6 @@ class TransactionBase(BaseModel):
         description="An optional transaction comment.",
         default=None,
     )
-
-    @field_validator("amount", mode="before")
-    @classmethod
-    def validate_amount(cls, v: Decimal) -> Decimal:
-        return _validate_amount(v)
 
     @field_validator("type", mode="before")
     @classmethod
