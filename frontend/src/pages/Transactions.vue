@@ -1,11 +1,88 @@
 <template>
   <v-container fluid>
-    <v-row class="mb-4">
+    <v-row>
       <v-col class="d-flex justify-space-between align-center" cols="12">
-        <h1>Transactions</h1>
+        <h2>Transactions</h2>
         <v-btn color="primary" prepend-icon="mdi-plus" @click="openCreateDialog">
           New
         </v-btn>
+      </v-col>
+    </v-row>
+
+    <v-row class="my-2" dense>
+      <v-col cols="12">
+        <v-text-field
+          v-model="filterComment"
+          clearable
+          density="compact"
+          hide-details
+          label="Search comments..."
+          prepend-inner-icon="mdi-magnify"
+          variant="outlined"
+        />
+      </v-col>
+    </v-row>
+
+    <v-row class="my-2" dense>
+      <v-col cols="6" sm="3">
+        <v-select
+          v-model="filterType"
+          clearable
+          density="compact"
+          hide-details
+          :items="typeOptions"
+          label="Type"
+          variant="outlined"
+        />
+      </v-col>
+      <v-col cols="6" sm="3">
+        <v-select
+          v-model="filterCategory"
+          clearable
+          density="compact"
+          hide-details
+          :items="filterCategoryOptions"
+          label="Category"
+          variant="outlined"
+        />
+      </v-col>
+      <v-col cols="6" sm="3">
+        <v-text-field
+          clearable
+          density="compact"
+          hide-details
+          label="From"
+          :model-value="filterAfter ? formatDateShort(filterAfter) : ''"
+          readonly
+          variant="outlined"
+          @click:clear="filterAfter = null"
+        >
+          <template #prepend-inner>
+            <v-icon size="small">mdi-calendar-start</v-icon>
+          </template>
+          <v-menu v-model="filterAfterMenu" activator="parent" :close-on-content-click="false">
+            <v-date-picker v-model="filterAfter" @update:model-value="filterAfterMenu = false" />
+          </v-menu>
+        </v-text-field>
+      </v-col>
+      <v-col cols="6" sm="3">
+        <v-text-field
+          clearable
+          density="compact"
+          hide-details
+          label="To"
+          :model-value="filterBefore ? formatDateShort(filterBefore) : ''"
+          readonly
+          variant="outlined"
+          @click:clear="filterBefore = null"
+        >
+          <template #prepend-inner>
+            <v-icon size="small">mdi-calendar-end</v-icon>
+          </template>
+          <v-menu v-model="filterBeforeMenu" activator="parent" :close-on-content-click="false">
+            <v-date-picker v-model="filterBefore" @update:model-value="filterBeforeMenu = false" />
+          </v-menu>
+        </v-text-field>
       </v-col>
     </v-row>
 
@@ -119,10 +196,10 @@
 
 <script lang="ts" setup>
   import type { NumTransactionsFilters } from '@/types/stats'
-  import type { CreateTransactionRequest, Transaction, TransactionCategory, TransactionType, UpdateTransactionRequest } from '@/types/transaction'
+  import type { CreateTransactionRequest, Transaction, TransactionCategory, TransactionFilters, TransactionType, UpdateTransactionRequest } from '@/types/transaction'
   import { TZDate } from '@date-fns/tz'
   import { format } from 'date-fns'
-  import { computed, onMounted, ref } from 'vue'
+  import { computed, onMounted, ref, watch } from 'vue'
   import CrudDialog from '@/components/CrudDialog.vue'
   import { useStatsStore } from '@/stores/stats'
   import { useTransactionStore } from '@/stores/transaction'
@@ -144,6 +221,7 @@
   ]
 
   const typeOptions: TransactionType[] = ['INCOME', 'EXPENSE']
+  const allCategories: TransactionCategory[] = ['SALARY', 'OTHER', 'NEED', 'WANT', 'SAVING']
   const incomeCategories: TransactionCategory[] = ['SALARY', 'OTHER']
   const expenseCategories: TransactionCategory[] = ['NEED', 'WANT', 'SAVING']
 
@@ -152,6 +230,75 @@
     if (form.value.type === 'EXPENSE') return expenseCategories
     return []
   })
+
+  const filterType = ref<TransactionType | null>(null)
+  const filterCategory = ref<TransactionCategory | null>(null)
+  const filterAfter = ref<Date | null>(null)
+  const filterBefore = ref<Date | null>(null)
+  const filterComment = ref<string | null>(null)
+  const filterAfterMenu = ref(false)
+  const filterBeforeMenu = ref(false)
+  const debouncedComment = ref<string | null>(null)
+  let commentDebounceTimer: ReturnType<typeof setTimeout> | null = null
+
+  const filterCategoryOptions = computed<TransactionCategory[]>(() => {
+    if (filterType.value === 'INCOME') return incomeCategories
+    if (filterType.value === 'EXPENSE') return expenseCategories
+    return allCategories
+  })
+
+  const activeFilters = computed<TransactionFilters>(() => {
+    const filters: TransactionFilters = {}
+    if (filterType.value) filters.type = filterType.value
+    if (filterCategory.value) filters.category = filterCategory.value
+    if (filterAfter.value) {
+      const tzDate = new TZDate(format(filterAfter.value, 'yyyy-MM-dd') + 'T00:00:00', timeZone)
+      filters.after = tzDate.toISOString()
+    }
+    if (filterBefore.value) {
+      const tzDate = new TZDate(format(filterBefore.value, 'yyyy-MM-dd') + 'T23:59:59', timeZone)
+      filters.before = tzDate.toISOString()
+    }
+    if (debouncedComment.value) filters.comment = debouncedComment.value
+    return filters
+  })
+
+  const activeNumFilters = computed<NumTransactionsFilters>(() => {
+    const filters: NumTransactionsFilters = {}
+    if (filterType.value) filters.type = filterType.value
+    if (filterCategory.value) filters.category = filterCategory.value
+    if (activeFilters.value.after) filters.after = activeFilters.value.after
+    if (activeFilters.value.before) filters.before = activeFilters.value.before
+    return filters
+  })
+
+  watch(filterType, () => {
+    if (filterCategory.value && !filterCategoryOptions.value.includes(filterCategory.value)) {
+      filterCategory.value = null
+    }
+  })
+
+  watch(filterComment, val => {
+    if (commentDebounceTimer) clearTimeout(commentDebounceTimer)
+    commentDebounceTimer = setTimeout(() => {
+      debouncedComment.value = val || null
+    }, 300)
+  })
+
+  watch(
+    [filterType, filterCategory, filterAfter, filterBefore, debouncedComment],
+    () => {
+      currentPage.value = 1
+      applyFilters()
+    },
+  )
+
+  async function applyFilters () {
+    await Promise.all([
+      transactionStore.fetchTableTransactions({ ...activeFilters.value, page: currentPage.value, limit: itemsPerPage.value }),
+      statsStore.fetchNumTransactions(activeNumFilters.value),
+    ])
+  }
 
   const dialog = ref(false)
   const dateMenu = ref(false)
@@ -190,14 +337,10 @@
     selectedTime.value = format(tzDate, 'HH:mm')
   }
 
-  async function updateNumTransactions (filters?: NumTransactionsFilters) {
-    await statsStore.fetchNumTransactions(filters)
-  }
-
   async function handleOptionsUpdate (options: { page: number, itemsPerPage: number }) {
     const { page, itemsPerPage: limit } = options
     currentPage.value = page
-    await transactionStore.fetchTableTransactions({ page, limit })
+    await transactionStore.fetchTableTransactions({ ...activeFilters.value, page, limit })
   }
 
   function formatDate (dateString: string): string {
@@ -208,6 +351,10 @@
     const hours = String(date.getHours()).padStart(2, '0')
     const minutes = String(date.getMinutes()).padStart(2, '0')
     return `${year}-${month}-${day} ${hours}:${minutes}`
+  }
+
+  function formatDateShort (date: Date): string {
+    return format(date, 'yyyy-MM-dd')
   }
 
   function capitalize (text: string): string {
@@ -300,11 +447,10 @@
   }
 
   async function refreshTable () {
-    await transactionStore.fetchTableTransactions({ page: currentPage.value, limit: itemsPerPage.value })
-    await updateNumTransactions()
+    await applyFilters()
   }
 
   onMounted(() => {
-    updateNumTransactions()
+    statsStore.fetchNumTransactions()
   })
 </script>
