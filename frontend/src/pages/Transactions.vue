@@ -38,103 +38,82 @@
       </template>
     </v-data-table-server>
 
-    <v-dialog v-model="dialog" max-width="500px">
-      <v-card>
-        <v-card-title class="pt-3">
-          <span class="text-h5">{{ dialogTitle }}</span>
-        </v-card-title>
-
-        <v-card-text>
-          <v-form ref="formRef" v-model="formValid" @submit.prevent="saveTransaction">
-            <v-row>
-              <v-col cols="12">
-                <v-select
-                  v-model="form.type"
-                  :items="typeOptions"
-                  label="Type"
-                  required
-                  :rules="[v => !!v || 'Type is required']"
-                  @update:model-value="form.category = categoryOptions[0]!"
-                />
-              </v-col>
-              <v-col cols="12">
-                <v-select
-                  v-model="form.category"
-                  :disabled="!form.type"
-                  :items="categoryOptions"
-                  label="Category"
-                  required
-                  :rules="[v => !!v || 'Category is required']"
-                />
-              </v-col>
-              <v-col cols="12">
-                <v-number-input
-                  v-model="form.amount"
-                  inset
-                  label="Amount"
-                  :min="0"
-                  :precision="2"
-                  required
-                  :rules="[
-                    v => v != null || 'Amount is required',
-                    v => v >= 0 || 'Invalid amount'
-                  ]"
-                />
-              </v-col>
-              <v-col cols="12">
-                <v-text-field
-                  label="Date & Time"
-                  :model-value="dialogDateTimeString"
-                  readonly
-                  required
-                  :rules="[v => !!v || 'Date is required']"
-                >
-                  <template #append-inner>
-                    <v-menu v-model="dateMenu" :close-on-content-click="false">
-                      <template #activator="{ props }">
-                        <v-btn v-bind="props" icon="mdi-calendar" size="small" variant="text" />
-                      </template>
-                      <v-date-picker v-model="selectedDate" @update:model-value="dateMenu = false" />
-                    </v-menu>
-                    <v-menu v-model="timeMenu" :close-on-content-click="false">
-                      <template #activator="{ props }">
-                        <v-btn v-bind="props" icon="mdi-clock" size="small" variant="text" />
-                      </template>
-                      <v-time-picker v-model="selectedTime" format="24hr" @update:minute="timeMenu = false" />
-                    </v-menu>
-                  </template>
-                </v-text-field>
-              </v-col>
-              <v-col cols="12">
-                <v-text-field v-model="form.comment" label="Comment (Optional)" />
-              </v-col>
-            </v-row>
-          </v-form>
-        </v-card-text>
-
-        <v-card-actions>
-          <template v-if="editingId">
-            <v-btn
-              v-if="!confirmingDelete"
-              color="error"
-              variant="text"
-              @click="confirmingDelete = true"
+    <crud-dialog
+      v-model="dialog"
+      :deleting="deleting"
+      :editing="!!editingId"
+      entity-name="Transaction"
+      :save-disabled="!formValid"
+      :saving="saving"
+      @delete="deleteTransaction"
+      @save="saveTransaction"
+    >
+      <v-form ref="formRef" v-model="formValid" @submit.prevent="saveTransaction">
+        <v-row>
+          <v-col cols="12">
+            <v-select
+              v-model="form.type"
+              :items="typeOptions"
+              label="Type"
+              required
+              :rules="[v => !!v || 'Type is required']"
+              @update:model-value="form.category = categoryOptions[0]!"
+            />
+          </v-col>
+          <v-col cols="12">
+            <v-select
+              v-model="form.category"
+              :disabled="!form.type"
+              :items="categoryOptions"
+              label="Category"
+              required
+              :rules="[v => !!v || 'Category is required']"
+            />
+          </v-col>
+          <v-col cols="12">
+            <v-number-input
+              v-model="form.amount"
+              inset
+              label="Amount"
+              :min="0"
+              :precision="2"
+              required
+              :rules="[
+                v => v != null || 'Amount is required',
+                v => v >= 0 || 'Invalid amount'
+              ]"
+            />
+          </v-col>
+          <v-col cols="12">
+            <v-text-field
+              label="Date & Time"
+              :model-value="dialogDateTimeString"
+              readonly
+              required
+              :rules="[v => !!v || 'Date is required']"
             >
-              Delete
-            </v-btn>
-            <template v-else>
-              <v-btn color="grey" variant="text" @click="confirmingDelete = false">Cancel</v-btn>
-              <v-btn color="error" :loading="deleting" variant="text" @click="deleteTransaction">Confirm Delete</v-btn>
-            </template>
-          </template>
-          <v-spacer />
-          <v-btn color="grey" @click="closeDialog">Cancel</v-btn>
-          <v-btn color="primary" :disabled="!formValid" :loading="saving" @click="saveTransaction">
-            Save
-          </v-btn>
-        </v-card-actions>
-      </v-card>
-    </v-dialog>
+              <template #append-inner>
+                <v-menu v-model="dateMenu" :close-on-content-click="false">
+                  <template #activator="{ props }">
+                    <v-btn v-bind="props" icon="mdi-calendar" size="small" variant="text" />
+                  </template>
+                  <v-date-picker v-model="selectedDate" @update:model-value="dateMenu = false" />
+                </v-menu>
+                <v-menu v-model="timeMenu" :close-on-content-click="false">
+                  <template #activator="{ props }">
+                    <v-btn v-bind="props" icon="mdi-clock" size="small" variant="text" />
+                  </template>
+                  <v-time-picker v-model="selectedTime" format="24hr" @update:minute="timeMenu = false" />
+                </v-menu>
+              </template>
+            </v-text-field>
+          </v-col>
+          <v-col cols="12">
+            <v-text-field v-model="form.comment" label="Comment (Optional)" />
+          </v-col>
+        </v-row>
+      </v-form>
+    </crud-dialog>
   </v-container>
 </template>
 
@@ -144,6 +123,7 @@
   import { TZDate } from '@date-fns/tz'
   import { format } from 'date-fns'
   import { computed, onMounted, ref } from 'vue'
+  import CrudDialog from '@/components/CrudDialog.vue'
   import { useStatsStore } from '@/stores/stats'
   import { useTransactionStore } from '@/stores/transaction'
 
@@ -181,9 +161,6 @@
   const saving = ref(false)
   const deleting = ref(false)
   const editingId = ref<number | null>(null)
-  const confirmingDelete = ref(false)
-
-  const dialogTitle = computed(() => (editingId.value ? 'Edit Transaction' : 'New Transaction'))
 
   const form = ref<CreateTransactionRequest>({
     amount: 0,
@@ -244,7 +221,6 @@
 
   function openCreateDialog () {
     editingId.value = null
-    confirmingDelete.value = false
     const now = new Date()
     selectedDate.value = now
     selectedTime.value = format(now, 'HH:mm')
@@ -260,7 +236,6 @@
 
   function openEditDialog (transaction: Transaction) {
     editingId.value = transaction.id
-    confirmingDelete.value = false
     setLocalDateTimeFromUtc(transaction.date)
     form.value = {
       amount: Number.parseFloat(transaction.amount),
@@ -276,7 +251,6 @@
     dialog.value = false
     dateMenu.value = false
     timeMenu.value = false
-    confirmingDelete.value = false
     formRef.value?.reset()
   }
 
