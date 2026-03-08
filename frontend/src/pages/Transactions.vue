@@ -9,7 +9,7 @@
       </v-col>
     </v-row>
 
-    <v-row class="my-2" density="comfortable">
+    <v-row class="my-0" density="comfortable">
       <v-col cols="12">
         <v-text-field
           v-model="filterComment"
@@ -23,7 +23,7 @@
       </v-col>
     </v-row>
 
-    <v-row class="my-2" density="comfortable">
+    <v-row class="my-4" density="comfortable">
       <v-col cols="6" sm="3">
         <v-select
           v-model="filterType"
