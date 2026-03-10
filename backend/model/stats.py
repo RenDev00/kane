@@ -43,3 +43,37 @@ class StatTotals(BaseModel):
         default=Decimal(0),
         description="The total amount earned through `OTHER`s",
     )
+
+
+class MonthlyStats(BaseModel):
+    month: str = Field(
+        description="Month identifier in YYYY-MM format.",
+        examples=["2025-10"],
+    )
+    total_income: Decimal = Field(
+        default=Decimal(0),
+        description="Sum of all income transactions for this month.",
+    )
+    total_expense: Decimal = Field(
+        default=Decimal(0),
+        description="Sum of all expense transactions for this month.",
+    )
+    total_need: Decimal = Field(
+        default=Decimal(0),
+        description="Sum of all NEED expenses for this month.",
+    )
+    total_want: Decimal = Field(
+        default=Decimal(0),
+        description="Sum of all WANT expenses for this month.",
+    )
+    total_saving: Decimal = Field(
+        default=Decimal(0),
+        description="Sum of all SAVING expenses for this month.",
+    )
+
+
+class MonthlyStatsResponse(BaseModel):
+    months: list[MonthlyStats] = Field(
+        default_factory=list,
+        description="Monthly statistics sorted chronologically (oldest first).",
+    )
