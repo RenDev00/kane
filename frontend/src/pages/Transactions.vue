@@ -195,7 +195,6 @@
 </template>
 
 <script lang="ts" setup>
-  import type { NumTransactionsFilters } from '@/types/stats'
   import type { CreateTransactionRequest, Transaction, TransactionCategory, TransactionFilters, TransactionType, UpdateTransactionRequest } from '@/types/transaction'
   import { TZDate } from '@date-fns/tz'
   import { format } from 'date-fns'
@@ -263,15 +262,6 @@
     return filters
   })
 
-  const activeNumFilters = computed<NumTransactionsFilters>(() => {
-    const filters: NumTransactionsFilters = {}
-    if (filterType.value) filters.type = filterType.value
-    if (filterCategory.value) filters.category = filterCategory.value
-    if (activeFilters.value.after) filters.after = activeFilters.value.after
-    if (activeFilters.value.before) filters.before = activeFilters.value.before
-    return filters
-  })
-
   watch(filterType, () => {
     if (filterCategory.value && !filterCategoryOptions.value.includes(filterCategory.value)) {
       filterCategory.value = null
@@ -296,7 +286,7 @@
   async function applyFilters () {
     await Promise.all([
       transactionStore.fetchTableTransactions({ ...activeFilters.value, page: currentPage.value, limit: itemsPerPage.value }),
-      statsStore.fetchNumTransactions(activeNumFilters.value),
+      statsStore.fetchNumTransactions(activeFilters.value),
     ])
   }
 
