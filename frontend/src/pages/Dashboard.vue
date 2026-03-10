@@ -231,7 +231,7 @@
                     class="text-h6 font-weight-bold"
                     :class="transaction.type.toUpperCase() === 'INCOME' ? 'text-success' : 'text-error'"
                   >
-                    {{ transaction.type.toUpperCase() === 'INCOME' ? '+' : '-' }}{{ formatCurrency(transaction.amount) }}
+                    {{ transaction.type.toUpperCase() === 'INCOME' ? '+' : '-' }}{{ formatCurrency(transaction.amount, 2) }}
                   </span>
                 </template>
               </v-list-item>
@@ -511,13 +511,13 @@
     }
   }
 
-  function formatCurrency (value: number | string): string {
+  function formatCurrency (value: number | string, decimals?: number): string {
     const num = typeof value === 'string' ? Number.parseFloat(value) : value
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'EUR',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
+      minimumFractionDigits: decimals || 0,
+      maximumFractionDigits: decimals || 0,
     }).format(num)
   }
 
@@ -588,7 +588,7 @@
       await Promise.all([
         loadTotals(),
         loadChartData(),
-        transactionService.getTransactions({ limit: 10 }).then(data => {
+        transactionService.getTransactions({ limit: 20 }).then(data => {
           recentTransactions.value = data
         }),
       ])
@@ -686,16 +686,16 @@
 }
 
 .transactions-card :deep(.v-list) {
-  height: 700px;
-  max-height: 700px;
+  height: 650px;
+  max-height: 650px;
   overflow-y: auto;
 }
 
 .chart-container {
   position: relative;
   flex: 1;
-  height: 700px;
-  max-height: 700px;
+  height: 650px;
+  max-height: 650px;
   width: 100%;
 }
 
